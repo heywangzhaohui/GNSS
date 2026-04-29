@@ -1,0 +1,399 @@
+完整 doEncrypt() 更详细还原版
+
+入口函数：
+
+bool doEncrypt(
+    long timestamp_ms,
+    const double& lon,
+    const double& lat,
+    const double& height,
+    double& out_lon,
+    double& out_lat
+);
+
+地址：
+0x711660
+
+说明：
+该函数不是 AES/RSA 这类密码学加密，而是 GNSS 经纬度坐标加密 / 偏移 / 火星坐标类转换入口。
+它从 GNSSFrame 中取得 timestamp、lon、lat、height 后执行合法性检查、量化、跳变检测、区域修正和 GCJ 类椭球偏移计算，输出加密后的经纬度。
+
+关键常量：
+
+constexpr double DEG_TO_RAD = 0.0174532925199433;
+constexpr double EE         = 0.00669342;
+constexpr double A          = 6378245.0;
+constexpr double PI         = 3.14159269;
+constexpr double TWO_PI     = 6.283185307179586;
+
+constexpr double LON_MIN = 115.73278;
+constexpr double LON_MAX = 117.85876;
+constexpr double LAT_MIN = 38.51527;
+constexpr double LAT_MAX = 40.41024;
+
+constexpr double QUANT = 3686400.0;
+
+完整还原伪代码：
+
+bool doEncrypt(
+    long timestamp_ms,
+    const double& lon,
+    const double& lat,
+    const double& height,
+    double& out_lon,
+    double& out_lat
+) {
+    // ---------- 时间处理 ----------
+    time_t sec = timestamp_ms / 1000;
+    tm* utc = gmtime(&sec);
+
+    int gps_week = 0;
+    int gps_sow = 0;
+
+    UTC2GPS(
+        utc->tm_year + 1900,
+        utc->tm_mon + 1,
+        utc->tm_mday,
+        utc->tm_hour,
+        utc->tm_min,
+        utc->tm_sec,
+        gps_week,
+        gps_sow
+    );
+
+    // ---------- 基础合法性检查 ----------
+    if ((int)height > 5000) {
+        LOG(ERROR) << "gnss lon lat encrypt failed";
+        return false;
+    }
+
+    if (gps_week < 2412 || gps_week > 2440) {
+        LOG(ERROR) << "gnss lon lat encrypt failed";
+        return false;
+    }
+
+    if (lon < 115.73278 || lon > 117.85876 ||
+        lat < 38.51527  || lat > 40.41024) {
+        LOG(ERROR) << "gnss lon lat encrypt failed";
+        return false;
+    }
+
+    // ---------- 经纬度量化 ----------
+    double q_lon = floor(lon * 3686400.0) / 3686400.0;
+    double q_lat = floor(lat * 3686400.0) / 3686400.0;
+
+    // ---------- 首帧初始化 ----------
+    if (g_first_encrypt) {
+        g_state.gps_sow = gps_sow;
+        g_state.lon0 = q_lon;
+        g_state.lon1 = q_lon;
+        g_state.lat0 = q_lat;
+        g_state.lat1 = q_lat;
+        g_state.counter = 3.0;
+
+        out_lon = q_lon;
+        out_lat = q_lat;
+
+        g_first_encrypt = false;
+        return true;
+    }
+
+    // ---------- 跳变检测 ----------
+    if (JudgeSD(gps_sow, q_lon, q_lat) == -1) {
+        LOG(ERROR) << "gnss lon lat encrypt failed";
+        return false;
+    }
+
+    // ---------- 坐标规整 ----------
+    double base_lon = comLonValue(q_lon);
+    double base_lat = comLonValue(q_lat);
+
+    // GCJ 类算法通常使用：
+    // x = lon - 105
+    // y = lat - 35
+    double x = base_lon - 105.0;
+    double y = base_lat - 35.0;
+
+    // ---------- 平面扰动 ----------
+    double d_lon_meter = EncrpytLonLatA(x, y);
+    double d_lat_meter = EncrpytLonLatB(x, y);
+
+    // ---------- 高程/区域修正 ----------
+    double elev = Elev_Inter(base_lon, base_lat);
+
+    d_lon_meter += elev * 0.357;
+    d_lat_meter += elev * 0.357;
+
+    // ---------- 椭球换算 ----------
+    double rad_lat = base_lat * DEG_TO_RAD;
+    double sin_lat = encrpytTL(rad_lat);
+
+    double magic = 1.0 - EE * sin_lat * sin_lat;
+    double sqrt_magic = sqrt(magic);
+
+    double dlon =
+        d_lon_meter * 180.0 /
+        ((A / sqrt_magic) * cos(rad_lat) * PI);
+
+    double dlat =
+        d_lat_meter * 180.0 /
+        ((A * (1.0 - EE)) / (magic * sqrt_magic) * PI);
+
+    // ---------- 输出量化 ----------
+    out_lon = floor((base_lon + dlon) * 3686400.0) / 3686400.0;
+    out_lat = floor((base_lat + dlat) * 3686400.0) / 3686400.0;
+
+    return true;
+}
+
+子函数算法逻辑摘要：
+
+1. UTC2GPS(...)
+
+作用：UTC 时间转 GPS week / second-of-week。
+
+核心逻辑：
+- 从 1980 年起累计天数。
+- 按闰年规则计算每年天数。
+- 累加当年月份和日期。
+- days -= 6，修正 GPS epoch。
+- gps_week = days / 7。
+- gps_sow = day_of_week * 86400 + hour * 3600 + minute * 60 + second + 18。
+
+2. EncrpytLonLatA(x, y)
+
+作用：计算经度方向平面扰动，结构类似 GCJ transformLon。
+
+近似公式：
+
+double EncrpytLonLatA(double x, double y) {
+    double ret =
+        300.0
+        + x
+        + 2.0 * y
+        + 0.1 * x * x
+        + 0.1 * x * y
+        + 0.1 * sqrt(abs(x));
+
+    ret += (
+        20.0 * sin(6.0 * x * PI) +
+        20.0 * sin(2.0 * x * PI)
+    ) * 2.0 / 3.0;
+
+    ret += (
+        20.0 * sin(x * PI) +
+        40.0 * sin(x / 3.0 * PI)
+    ) * 2.0 / 3.0;
+
+    ret += (
+        150.0 * sin(x / 12.0 * PI) +
+        300.0 * sin(x / 30.0 * PI)
+    ) * 2.0 / 3.0;
+
+    return ret;
+}
+
+3. EncrpytLonLatB(x, y)
+
+作用：计算纬度方向平面扰动，结构类似 GCJ transformLat。
+
+近似公式：
+
+double EncrpytLonLatB(double x, double y) {
+    double ret =
+        -100.0
+        + 2.0 * x
+        + 3.0 * y
+        + 0.2 * y * y
+        + 0.1 * x * y
+        + 0.2 * sqrt(abs(x));
+
+    ret += (
+        20.0 * sin(6.0 * x * PI) +
+        20.0 * sin(2.0 * x * PI)
+    ) * 2.0 / 3.0;
+
+    ret += (
+        20.0 * sin(y * PI) +
+        40.0 * sin(y / 3.0 * PI)
+    ) * 2.0 / 3.0;
+
+    ret += (
+        160.0 * sin(y / 12.0 * PI) +
+        320.0 * sin(y * PI / 30.0)
+    ) * 2.0 / 3.0;
+
+    return ret;
+}
+
+4. encrpytTL(double x)
+
+作用：自定义 sin 近似函数，先将输入规约到周期内，再用 Taylor / 多项式近似。
+
+近似公式：
+
+double encrpytTL(double x) {
+    bool neg = false;
+
+    if (x < 0.0) {
+        x = -x;
+        neg = true;
+    }
+
+    x = x - floor(x / TWO_PI) * TWO_PI;
+
+    if (x > PI) {
+        x -= PI;
+        neg = !neg;
+    }
+
+    double x2 = x * x;
+    double x3 = x * x2;
+    double x5 = x3 * x2;
+    double x7 = x5 * x2;
+    double x9 = x7 * x2;
+    double x11 = x9 * x2;
+    double x13 = x11 * x2;
+    double x15 = x13 * x2;
+
+    double y =
+        x
+        - x3  / 6.0
+        + x5  / 120.0
+        - x7  / 5040.0
+        + x9  / 362880.0
+        - x11 / 39916800.0
+        + x13 / 6227020800.0
+        - x15 / 1307674368000.0;
+
+    return neg ? -y : y;
+}
+
+5. Elev_Inter(lon, lat)
+
+作用：区域高程/修正表双线性插值。
+
+常量：
+- LON_TABLE_MIN = 72.004
+- LON_TABLE_MAX = 137.8347
+- LAT_TABLE_MIN = 0.8293
+- LAT_TABLE_MAX = 55.8271
+- GRID_STEP = 0.8333
+- GRID_AREA = 0.69438889
+
+近似逻辑：
+
+double Elev_Inter(double lon, double lat) {
+    if (lon < 72.004 || lon > 137.8347) {
+        return 0.0;
+    }
+
+    if (lat < 0.8293 || lat > 55.8271) {
+        return 0.0;
+    }
+
+    double fx = (lon - 72.004) / 0.8333;
+    double fy = (55.8271 - lat) / 0.8333;
+
+    int ix = int(fx);
+    int iy = int(fy);
+
+    double v00 = table[iy][ix];
+    double v01 = table[iy][ix + 1];
+    double v10 = table[iy + 1][ix];
+    double v11 = table[iy + 1][ix + 1];
+
+    double dx = lon - (72.004 + ix * 0.8333);
+    double dy = (55.8271 - iy * 0.8333) - lat;
+
+    double sx = 0.8333 - dx;
+    double sy = 0.8333 - dy;
+
+    return (
+        v00 * sx * sy +
+        v01 * dx * sy +
+        v10 * sx * dy +
+        v11 * dx * dy
+    ) / 0.69438889;
+}
+
+6. JudgeSD(...)
+
+作用：轨迹连续性 / GNSS 跳变检查。
+
+近似逻辑：
+
+int JudgeSD(int gps_sow, double lon, double lat) {
+    double dt = (gps_sow - prev_gps_sow) / 1000.0;
+
+    if (dt <= 0.0) {
+        prev_gps_sow = gps_sow;
+        prev_lon = lon;
+        prev_lat = lat;
+        sample_count += 3.0;
+        return 0;
+    }
+
+    if (dt <= 120.0) {
+        update_state();
+        return 0;
+    }
+
+    if (sample_count == 3.0) {
+        double dx = lon - last_lon;
+        double dy = lat - last_lat;
+        double dist = sqrt(dx * dx + dy * dy);
+        double speed_like = dist / dt;
+
+        if (speed_like > 3185.0) {
+            return -1;
+        }
+    }
+
+    update_state();
+    return 0;
+}
+
+7. EncryptHX / EncryptHY
+
+作用：把平面偏移量换算成经纬度角度偏移。
+
+EncryptHX 对应经度方向：
+
+double EncryptHX(double lat, double dx) {
+    double rad = lat * DEG_TO_RAD;
+    double sin_lat = encrpytTL(rad);
+
+    double magic = 1.0 - EE * sin_lat * sin_lat;
+    double sqrt_magic = sqrt(magic);
+
+    return dx * 180.0 /
+           ((A / sqrt_magic) * cos(rad) * PI);
+}
+
+EncryptHY 对应纬度方向：
+
+double EncryptHY(double lat, double dy) {
+    double rad = lat * DEG_TO_RAD;
+    double sin_lat = encrpytTL(rad);
+
+    double magic = 1.0 - EE * sin_lat * sin_lat;
+    double sqrt_magic = sqrt(magic);
+
+    return dy * 180.0 /
+           ((A * (1.0 - EE)) / (magic * sqrt_magic) * PI);
+}
+
+最终结论：
+
+这个 doEncrypt() 的算法不是密码学加密，而是针对北京附近 GNSS 经纬度的坐标加密 / 偏移算法。
+核心特征：
+
+1. 限定北京附近经纬度范围。
+2. 检查 GPS week 和高度。
+3. 对经纬度做固定精度量化。
+4. 使用 GCJ 类 transformLon / transformLat 公式。
+5. 使用 a=6378245.0, ee=0.00669342 椭球参数。
+6. 使用 Elev_Inter 区域表做额外修正。
+7. 使用 JudgeSD 做 GNSS 跳变过滤。
+8. 输出加密后的 lon / lat。

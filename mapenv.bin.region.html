@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>mapenv.bin doEncrypt Google 瓦片矩形区域</title>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      left: 0;
+    }
+    .panel {
+      position: absolute;
+      top: 12px;
+      left: 56px;
+      z-index: 1000;
+      max-width: 460px;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 10px;
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.25);
+      padding: 14px 16px;
+      line-height: 1.45;
+      color: #1f2933;
+    }
+    .panel h1 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+    .panel code {
+      background: #f1f5f9;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+    .panel ul {
+      margin: 8px 0 0 20px;
+      padding: 0;
+    }
+    .panel a {
+      color: #0b57d0;
+      text-decoration: none;
+    }
+    .panel a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="panel">
+    <h1>mapenv.bin doEncrypt 矩形区域</h1>
+    <div>绘图方式参考 <code>多轨迹对比_20260408_102051_QCJPSD850512.html</code>：</div>
+    <div><code>L.map</code> + Google 瓦片图层 + <code>L.polygon</code></div>
+    <hr />
+    <div>经度：<code>121.15000</code> ~ <code>121.31000</code></div>
+    <div>纬度：<code>31.18000</code> ~ <code>31.21000</code></div>
+    <div>中心点：<code>31.19500, 121.23000</code></div>
+    <ul>
+      <li>SW: <code>31.18000000, 121.15000000</code></li>
+      <li>SE: <code>31.18000000, 121.31000000</code></li>
+      <li>NE: <code>31.21000000, 121.31000000</code></li>
+      <li>NW: <code>31.21000000, 121.15000000</code></li>
+    </ul>
+    <ul>
+      <li><a href="https://www.google.com/maps/search/?api=1&query=31.19500000,121.23000000" target="_blank" rel="noopener">在 Google Maps 打开中心点</a></li>
+      <li><a href="https://www.google.com/maps/dir/31.18000000,121.15000000/31.18000000,121.31000000/31.21000000,121.31000000/31.21000000,121.15000000/31.18000000,121.15000000" target="_blank" rel="noopener">在 Google Maps 打开四点路径</a></li>
+    </ul>
+  </div>
+
+  <script>
+    const map = L.map('map', {
+      center: [31.19500000, 121.23000000],
+      crs: L.CRS.EPSG3857,
+      zoom: 15,
+      zoomControl: true,
+      preferCanvas: false,
+    });
+
+    const googleSatellite = L.tileLayer(
+      'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+      {
+        minZoom: 5,
+        maxZoom: 23,
+        maxNativeZoom: 23,
+        noWrap: false,
+        attribution: 'Google Satellite',
+        subdomains: 'abc',
+        detectRetina: false,
+        tms: false,
+        opacity: 1,
+      }
+    ).addTo(map);
+
+    const googleHybridLabels = L.tileLayer(
+      'https://mt1.google.com/vt/lyrs=h&x={x}&y={y}&z={z}',
+      {
+        minZoom: 0,
+        maxZoom: 23,
+        maxNativeZoom: 23,
+        noWrap: false,
+        attribution: 'Google Hybrid Labels',
+        subdomains: 'abc',
+        detectRetina: false,
+        tms: false,
+        opacity: 1,
+      }
+    ).addTo(map);
+
+    const googleRoadmap = L.tileLayer(
+      'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+      {
+        minZoom: 0,
+        maxZoom: 23,
+        maxNativeZoom: 23,
+        noWrap: false,
+        attribution: 'Google Roadmap',
+        subdomains: 'abc',
+        detectRetina: false,
+        tms: false,
+        opacity: 1,
+      }
+    );
+
+    const rectanglePoints = [
+      [31.18000000, 121.15000000], // Southwest
+      [31.18000000, 121.31000000], // Southeast
+      [31.21000000, 121.31000000], // Northeast
+      [31.21000000, 121.15000000], // Northwest
+      [31.18000000, 121.15000000], // Close polygon
+    ];
+
+    const rectangleLayer = L.polygon(rectanglePoints, {
+      bubblingMouseEvents: true,
+      color: '#ff0000',
+      dashArray: null,
+      dashOffset: null,
+      fill: true,
+      fillColor: '#ff0000',
+      fillOpacity: 0.20,
+      fillRule: 'evenodd',
+      lineCap: 'round',
+      lineJoin: 'round',
+      noClip: false,
+      opacity: 1.0,
+      smoothFactor: 1.0,
+      stroke: true,
+      weight: 5,
+    }).addTo(map);
+
+    rectangleLayer.bindPopup(`
+      <b>doEncrypt valid coordinate rectangle</b><br>
+      lon_min=121.15000, lon_max=121.31000<br>
+      lat_min=31.18000, lat_max=31.21000
+    `);
+
+    const centerMarker = L.circleMarker([31.19500000, 121.23000000], {
+      bubblingMouseEvents: true,
+      color: '#00aa00',
+      fill: true,
+      fillColor: '#00aa00',
+      fillOpacity: 1,
+      opacity: 1.0,
+      radius: 6,
+      stroke: true,
+      weight: 3,
+    }).addTo(map);
+    centerMarker.bindPopup('Center: 31.19500000, 121.23000000');
+
+    const cornerMarkers = [
+      ['Southwest', 31.18000000, 121.15000000],
+      ['Southeast', 31.18000000, 121.31000000],
+      ['Northeast', 31.21000000, 121.31000000],
+      ['Northwest', 31.21000000, 121.15000000],
+    ];
+
+    for (const [name, lat, lon] of cornerMarkers) {
+      const marker = L.circleMarker([lat, lon], {
+        bubblingMouseEvents: true,
+        color: '#ff0000',
+        fill: true,
+        fillColor: '#ff0000',
+        fillOpacity: 1,
+        opacity: 1.0,
+        radius: 5,
+        stroke: true,
+        weight: 3,
+      }).addTo(map);
+      marker.bindPopup(`${name}<br>${lat.toFixed(8)}, ${lon.toFixed(8)}`);
+    }
+
+    const baseLayers = {
+      'Google Satellite': googleSatellite,
+      'Google Roadmap': googleRoadmap,
+    };
+
+    const overlays = {
+      'Google Hybrid Labels': googleHybridLabels,
+      'doEncrypt valid rectangle': rectangleLayer,
+      'Center point': centerMarker,
+    };
+
+    L.control.layers(baseLayers, overlays, {
+      position: 'topright',
+      collapsed: false,
+      autoZIndex: true,
+    }).addTo(map);
+
+    map.fitBounds(rectangleLayer.getBounds(), { padding: [40, 40] });
+  </script>
+</body>
+</html>
