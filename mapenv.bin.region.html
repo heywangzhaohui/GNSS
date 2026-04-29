@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>mapenv.bin doEncrypt 经纬度范围</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIINfQm41ssK1ghkEMi6QJQz2u3OD3Duo=" crossorigin="" />
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #1f2933;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+    .panel {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 1000;
+      max-width: 420px;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 10px;
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.25);
+      padding: 14px 16px;
+      line-height: 1.45;
+    }
+    .panel h1 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+    .panel code {
+      background: #f1f5f9;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+    .panel ul {
+      margin: 8px 0 0 20px;
+      padding: 0;
+    }
+    .panel a {
+      color: #0b57d0;
+      text-decoration: none;
+    }
+    .panel a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="panel">
+    <h1>mapenv.bin doEncrypt 经纬度范围</h1>
+    <div>经度：<code>121.15000</code> ~ <code>121.31000</code></div>
+    <div>纬度：<code>31.18000</code> ~ <code>31.21000</code></div>
+    <div>中心点：<code>31.19500, 121.23000</code></div>
+    <ul>
+      <li><a href="https://www.google.com/maps/search/?api=1&query=31.19500000,121.23000000" target="_blank" rel="noopener">在 Google Maps 打开中心点</a></li>
+      <li><a href="https://www.google.com/maps/dir/31.18000000,121.15000000/31.18000000,121.31000000/31.21000000,121.31000000/31.21000000,121.15000000/31.18000000,121.15000000" target="_blank" rel="noopener">在 Google Maps 打开矩形路径</a></li>
+    </ul>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const bounds = [
+      [31.18000000, 121.15000000],
+      [31.21000000, 121.31000000]
+    ];
+
+    const rectangleCoords = [
+      [31.18000000, 121.15000000],
+      [31.18000000, 121.31000000],
+      [31.21000000, 121.31000000],
+      [31.21000000, 121.15000000]
+    ];
+
+    const map = L.map('map');
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const polygon = L.polygon(rectangleCoords, {
+      color: '#ff0000',
+      weight: 3,
+      fillColor: '#ff0000',
+      fillOpacity: 0.22
+    }).addTo(map);
+
+    polygon.bindPopup(`
+      <b>doEncrypt valid coordinate rectangle</b><br>
+      lon_min=121.15000, lon_max=121.31000<br>
+      lat_min=31.18000, lat_max=31.21000
+    `);
+
+    const center = [31.19500000, 121.23000000];
+    L.marker(center).addTo(map).bindPopup('Center: 31.19500, 121.23000');
+
+    const corners = [
+      ['Southwest', 31.18000000, 121.15000000],
+      ['Southeast', 31.18000000, 121.31000000],
+      ['Northeast', 31.21000000, 121.31000000],
+      ['Northwest', 31.21000000, 121.15000000]
+    ];
+
+    for (const [name, lat, lon] of corners) {
+      L.circleMarker([lat, lon], {
+        radius: 5,
+        color: '#b91c1c',
+        fillColor: '#ef4444',
+        fillOpacity: 1
+      }).addTo(map).bindPopup(`${name}: ${lat.toFixed(5)}, ${lon.toFixed(5)}`);
+    }
+
+    map.fitBounds(bounds, { padding: [40, 40] });
+  </script>
+</body>
+</html>
