@@ -3,22 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>mapenv.bin doEncrypt Google Maps 矩形区域</title>
+  <title>mapenv.bin doEncrypt Google 瓦片矩形区域</title>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     html, body {
+      width: 100%;
       height: 100%;
       margin: 0;
+      padding: 0;
       font-family: Arial, Helvetica, sans-serif;
     }
     #map {
-      height: 100%;
-      width: 100%;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      left: 0;
     }
     .panel {
       position: absolute;
       top: 12px;
-      left: 12px;
-      z-index: 5;
+      left: 56px;
+      z-index: 1000;
       max-width: 460px;
       background: rgba(255, 255, 255, 0.96);
       border-radius: 10px;
@@ -47,16 +54,15 @@
     .panel a:hover {
       text-decoration: underline;
     }
-    .error {
-      color: #b91c1c;
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <div class="panel">
-    <h1>mapenv.bin doEncrypt Google Maps 矩形区域</h1>
+    <h1>mapenv.bin doEncrypt 矩形区域</h1>
+    <div>绘图方式参考 <code>多轨迹对比_20260408_102051_QCJPSD850512.html</code>：</div>
+    <div><code>L.map</code> + Google 瓦片图层 + <code>L.polygon</code></div>
+    <hr />
     <div>经度：<code>121.15000</code> ~ <code>121.31000</code></div>
     <div>纬度：<code>31.18000</code> ~ <code>31.21000</code></div>
     <div>中心点：<code>31.19500, 121.23000</code></div>
@@ -70,107 +76,147 @@
       <li><a href="https://www.google.com/maps/search/?api=1&query=31.19500000,121.23000000" target="_blank" rel="noopener">在 Google Maps 打开中心点</a></li>
       <li><a href="https://www.google.com/maps/dir/31.18000000,121.15000000/31.18000000,121.31000000/31.21000000,121.31000000/31.21000000,121.15000000/31.18000000,121.15000000" target="_blank" rel="noopener">在 Google Maps 打开四点路径</a></li>
     </ul>
-    <p id="key-warning" class="error" style="display:none;">
-      请在本 HTML 底部将 GOOGLE_MAPS_API_KEY 替换为你的 Google Maps JavaScript API Key 后再打开。
-    </p>
   </div>
 
   <script>
-    const GOOGLE_MAPS_API_KEY = 'REPLACE_WITH_GOOGLE_MAPS_API_KEY';
+    const map = L.map('map', {
+      center: [31.19500000, 121.23000000],
+      crs: L.CRS.EPSG3857,
+      zoom: 15,
+      zoomControl: true,
+      preferCanvas: false,
+    });
 
-    const rectanglePath = [
-      { lat: 31.18000000, lng: 121.15000000 }, // Southwest
-      { lat: 31.18000000, lng: 121.31000000 }, // Southeast
-      { lat: 31.21000000, lng: 121.31000000 }, // Northeast
-      { lat: 31.21000000, lng: 121.15000000 }, // Northwest
+    const googleSatellite = L.tileLayer(
+      'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+      {
+        minZoom: 5,
+        maxZoom: 23,
+        maxNativeZoom: 23,
+        noWrap: false,
+        attribution: 'Google Satellite',
+        subdomains: 'abc',
+        detectRetina: false,
+        tms: false,
+        opacity: 1,
+      }
+    ).addTo(map);
+
+    const googleHybridLabels = L.tileLayer(
+      'https://mt1.google.com/vt/lyrs=h&x={x}&y={y}&z={z}',
+      {
+        minZoom: 0,
+        maxZoom: 23,
+        maxNativeZoom: 23,
+        noWrap: false,
+        attribution: 'Google Hybrid Labels',
+        subdomains: 'abc',
+        detectRetina: false,
+        tms: false,
+        opacity: 1,
+      }
+    ).addTo(map);
+
+    const googleRoadmap = L.tileLayer(
+      'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+      {
+        minZoom: 0,
+        maxZoom: 23,
+        maxNativeZoom: 23,
+        noWrap: false,
+        attribution: 'Google Roadmap',
+        subdomains: 'abc',
+        detectRetina: false,
+        tms: false,
+        opacity: 1,
+      }
+    );
+
+    const rectanglePoints = [
+      [31.18000000, 121.15000000], // Southwest
+      [31.18000000, 121.31000000], // Southeast
+      [31.21000000, 121.31000000], // Northeast
+      [31.21000000, 121.15000000], // Northwest
+      [31.18000000, 121.15000000], // Close polygon
     ];
 
-    const center = { lat: 31.19500000, lng: 121.23000000 };
+    const rectangleLayer = L.polygon(rectanglePoints, {
+      bubblingMouseEvents: true,
+      color: '#ff0000',
+      dashArray: null,
+      dashOffset: null,
+      fill: true,
+      fillColor: '#ff0000',
+      fillOpacity: 0.20,
+      fillRule: 'evenodd',
+      lineCap: 'round',
+      lineJoin: 'round',
+      noClip: false,
+      opacity: 1.0,
+      smoothFactor: 1.0,
+      stroke: true,
+      weight: 5,
+    }).addTo(map);
 
-    function initMap() {
-      const map = new google.maps.Map(document.getElementById('map'), {
-        center,
-        zoom: 13,
-        mapTypeId: 'roadmap',
-        fullscreenControl: true,
-        streetViewControl: true,
-        mapTypeControl: true,
-        scaleControl: true,
-      });
+    rectangleLayer.bindPopup(`
+      <b>doEncrypt valid coordinate rectangle</b><br>
+      lon_min=121.15000, lon_max=121.31000<br>
+      lat_min=31.18000, lat_max=31.21000
+    `);
 
-      const rectangle = new google.maps.Polygon({
-        paths: rectanglePath,
-        strokeColor: '#ff0000',
-        strokeOpacity: 1.0,
-        strokeWeight: 3,
+    const centerMarker = L.circleMarker([31.19500000, 121.23000000], {
+      bubblingMouseEvents: true,
+      color: '#00aa00',
+      fill: true,
+      fillColor: '#00aa00',
+      fillOpacity: 1,
+      opacity: 1.0,
+      radius: 6,
+      stroke: true,
+      weight: 3,
+    }).addTo(map);
+    centerMarker.bindPopup('Center: 31.19500000, 121.23000000');
+
+    const cornerMarkers = [
+      ['Southwest', 31.18000000, 121.15000000],
+      ['Southeast', 31.18000000, 121.31000000],
+      ['Northeast', 31.21000000, 121.31000000],
+      ['Northwest', 31.21000000, 121.15000000],
+    ];
+
+    for (const [name, lat, lon] of cornerMarkers) {
+      const marker = L.circleMarker([lat, lon], {
+        bubblingMouseEvents: true,
+        color: '#ff0000',
+        fill: true,
         fillColor: '#ff0000',
-        fillOpacity: 0.20,
-        clickable: true,
-      });
-      rectangle.setMap(map);
-
-      const infoWindow = new google.maps.InfoWindow({
-        content: `
-          <strong>doEncrypt valid coordinate rectangle</strong><br>
-          lon_min=121.15000, lon_max=121.31000<br>
-          lat_min=31.18000, lat_max=31.21000
-        `,
-        position: center,
-      });
-      rectangle.addListener('click', () => infoWindow.open(map));
-
-      new google.maps.Marker({
-        position: center,
-        map,
-        title: 'Center (31.19500, 121.23000)',
-      });
-
-      const corners = [
-        ['Southwest', { lat: 31.18000000, lng: 121.15000000 }],
-        ['Southeast', { lat: 31.18000000, lng: 121.31000000 }],
-        ['Northeast', { lat: 31.21000000, lng: 121.31000000 }],
-        ['Northwest', { lat: 31.21000000, lng: 121.15000000 }],
-      ];
-
-      for (const [name, position] of corners) {
-        const marker = new google.maps.Marker({
-          position,
-          map,
-          title: `${name} (${position.lat.toFixed(5)}, ${position.lng.toFixed(5)})`,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 6,
-            fillColor: '#ff0000',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2,
-          },
-        });
-        const markerInfo = new google.maps.InfoWindow({
-          content: `<strong>${name}</strong><br>${position.lat.toFixed(8)}, ${position.lng.toFixed(8)}`,
-        });
-        marker.addListener('click', () => markerInfo.open(map, marker));
-      }
-
-      const bounds = new google.maps.LatLngBounds();
-      rectanglePath.forEach(point => bounds.extend(point));
-      map.fitBounds(bounds, 48);
+        fillOpacity: 1,
+        opacity: 1.0,
+        radius: 5,
+        stroke: true,
+        weight: 3,
+      }).addTo(map);
+      marker.bindPopup(`${name}<br>${lat.toFixed(8)}, ${lon.toFixed(8)}`);
     }
 
-    function loadGoogleMaps() {
-      if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'REPLACE_WITH_GOOGLE_MAPS_API_KEY') {
-        document.getElementById('key-warning').style.display = 'block';
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&callback=initMap`;
-      script.async = true;
-      script.defer = true;
-      document.head.appendChild(script);
-    }
+    const baseLayers = {
+      'Google Satellite': googleSatellite,
+      'Google Roadmap': googleRoadmap,
+    };
 
-    window.initMap = initMap;
-    loadGoogleMaps();
+    const overlays = {
+      'Google Hybrid Labels': googleHybridLabels,
+      'doEncrypt valid rectangle': rectangleLayer,
+      'Center point': centerMarker,
+    };
+
+    L.control.layers(baseLayers, overlays, {
+      position: 'topright',
+      collapsed: false,
+      autoZIndex: true,
+    }).addTo(map);
+
+    map.fitBounds(rectangleLayer.getBounds(), { padding: [40, 40] });
   </script>
 </body>
 </html>
