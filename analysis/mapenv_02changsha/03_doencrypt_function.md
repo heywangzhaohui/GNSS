@@ -66,7 +66,13 @@ ARM64 下前 6 个参数进入函数时在 `x0..x5`：
 
 ### 3.1 时间预处理：`0x711660..0x7116f8`
 
-函数先对 `timestamp_raw` 做魔数除法，然后调用：
+函数先对 `timestamp_raw` 做魔数除法。`0x20c49ba5e353f7cf` 配合 `smulh/asr/sub` 是有符号除以 `1000` 的优化模式，因此这里可以理解为：
+
+```cpp
+timestamp_seconds = timestamp_raw / 1000;
+```
+
+随后调用：
 
 ```asm
 7116d8: bl gmtime@plt
@@ -76,7 +82,7 @@ ARM64 下前 6 个参数进入函数时在 `x0..x5`：
 可以暂时理解为：
 
 ```cpp
-auto t = normalize_timestamp(timestamp_raw);
+auto t = timestamp_raw / 1000;
 auto tm = gmtime(&t);
 UTC2GPS(tm->year, tm->month, tm->day, tm->hour, tm->min, tm->sec,
         gps_a, gps_b);
@@ -132,7 +138,14 @@ UTC2GPS(tm->year, tm->month, tm->day, tm->hour, tm->min, tm->sec,
 711784: fdiv d10, d1, 10000000.0
 ```
 
-其中 `d3 = 60.0`，`fcvtzu ..., #10` 是固定点转换。最终 `d8/d10` 是经纬度量化后的 double。
+其中 `d3 = 60.0`，`fcvtzu ..., #10` 是无符号固定点转换。可读作：
+
+```cpp
+raw_scaled = trunc_unsigned(input * 60.0 * 60.0 * 1024.0);
+quantized = raw_scaled / 10000000.0;
+```
+
+最终 `d8/d10` 是经纬度量化后的 double。
 
 建议命名：
 
@@ -289,7 +302,22 @@ grid_lat
 7117f0: fdiv d0, d1, 10000000.0
 ```
 
-## 4. 接近 C 的伪代码
+## 4. 当前最清晰的代码整理
+
+如果只想看整理后的代码，优先看：
+
+```text
+doencrypt_annotated_pseudocode.cpp
+```
+
+这份文件已经把 `doEncrypt` 整理为一份带注释的 C/C++ 风格伪代码，并明确标注：
+
+- 哪些名字是二进制符号中已有的；
+- 哪些全局变量名是根据地址和用途推测的；
+- 哪些 helper 是为了阅读从内联汇编中抽出来的；
+- 哪些常量已经从 `.rodata` 或立即数确认。
+
+## 5. 接近 C 的伪代码
 
 下面是便于你本地对照的伪代码，变量名是教学命名，不是最终源码名：
 
@@ -300,7 +328,7 @@ bool doEncrypt(long timestamp_raw,
                const double& in_extra,
                double& out_lon,
                double& out_lat) {
-    TimeParts tm = gmtime(normalize_timestamp(timestamp_raw));
+    TimeParts tm = gmtime(timestamp_raw / 1000);
     int gps_a = 0;
     int gps_b = 0;
     UTC2GPS(tm.year, tm.month, tm.day, tm.hour, tm.min, tm.sec, gps_a, gps_b);
@@ -375,7 +403,7 @@ bool doEncrypt(long timestamp_raw,
 - `k_elev_factor` 来自 `0x9ae000 + 2272`，本次还没有给它最终语义；
 - `quantize_to_1e7` 的实现需要仔细处理 `fcvtzu ..., #10`，不要简单等同于 `round(x * 1e7)`。
 
-## 5. 本地反编译器操作建议
+## 6. 本地反编译器操作建议
 
 在 Ghidra/IDA 中只针对 `doEncrypt` 先做这些动作：
 

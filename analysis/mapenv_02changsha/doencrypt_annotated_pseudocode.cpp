@@ -1,4 +1,4 @@
-// Annotated pseudocode for:
+// Clean annotated pseudocode for:
 //   doEncrypt(long, double const&, double const&, double const&, double&, double&)
 // Address:
 //   0x711660
@@ -7,13 +7,12 @@
 // It is a readable reconstruction from the ARM64 disassembly in:
 //   23_doencrypt_disassembly.asm
 //
-// Naming convention used here:
-// - Names with "guess" are not proven by symbols.
-// - Helper functions such as quantize_to_1e7_guess() and grid_adjust_*_guess()
-//   are extracted from inline assembly patterns only to make the control flow
-//   easier to read.
-// - The binary symbol name is kept when available, for example UTC2GPS,
-//   JudgeSD, Elev_Inter, EncrpytLonLatA, EncrpytLonLatB and encrpytTL.
+// Reading rules:
+// - Names ending in "_guess" are inferred names, not original symbols.
+// - Symbol names found in the binary are kept as-is, including the original
+//   typo in EncrpytLonLatA / EncrpytLonLatB / encrpytTL.
+// - The main body follows doEncrypt's real control flow. Some inline arithmetic
+//   blocks are factored into helpers only to make the recovered logic readable.
 
 #include <stdint.h>
 #include <time.h>
@@ -73,14 +72,13 @@ extern EncryptStateGuess g_encrypt_state_guess;
 static void log_input_parameter_error_guess();
 
 // 0x711660..0x7116d4:
-// The first argument is transformed by a signed magic-number division before
-// gmtime(). The exact input unit is not proven here. The result is stored as a
-// local time_t-like value and passed by address to gmtime().
+// The first argument is divided by 1000 using signed magic-number division:
+//   smulh/asr/sub with magic 0x20c49ba5e353f7cf
+// This is the standard optimized pattern for timestamp_raw / 1000.
+// The result is stored on the stack and passed by address to gmtime().
 static time_t normalize_timestamp_guess(long timestamp_raw)
 {
-    // Keep this intentionally abstract. Reproduce the exact magic division from
-    // assembly if you need bit-identical behavior.
-    return (time_t)timestamp_raw;
+    return (time_t)(timestamp_raw / 1000);
 }
 
 // 0x71171c..0x711784:
@@ -89,12 +87,11 @@ static time_t normalize_timestamp_guess(long timestamp_raw)
 //   fcvtzu wN, dN, #10
 //   ucvtf dN, wN
 //
-// ARM64 "fcvtzu ..., #10" means fixed-point conversion with a binary scaling
-// factor, so this helper is only a readable placeholder, not exact C.
-static double quantize_to_1e7_guess(double value)
+// ARM64 "fcvtzu ..., #10" means unsigned fixed-point conversion:
+//   integer = trunc(value * 60.0 * 60.0 * 2^10)
+// The integer is then converted back to double and divided by 10000000.0.
+static double quantize_scaled_integer_guess(double value)
 {
-    // The output is later divided by 10000000.0. Keep "scaled integer as double"
-    // semantics visible to avoid confusing it with ordinary rounding.
     return (double)(uint32_t)(value * 60.0 * 60.0 * 1024.0);
 }
 
@@ -132,8 +129,8 @@ static double grid_adjust_lat_guess(double lat)
 
 static int check_time_and_extra_guess(int gps_a, double in_extra)
 {
-    // 0x71170c..0x711718:
-    //   (gps_a - 0x96c) <= 0x1c
+    // 0x71170c..0x711718 checks:
+    //   (gps_a - 2412) <= 28
     //   (int)in_extra <= 5000
     //
     // The signed/unsigned condition is encoded through cmp/ccmp/b.gt. This is
@@ -163,6 +160,7 @@ int doEncrypt_annotated(long timestamp_raw,
     // 1) Time preprocessing.
     //
     // Assembly:
+    //   timestamp_seconds = timestamp_raw / 1000
     //   7116d8: bl gmtime@plt
     //   7116f8: bl UTC2GPS(...)
     time_t normalized_time = normalize_timestamp_guess(timestamp_raw);
@@ -170,14 +168,14 @@ int doEncrypt_annotated(long timestamp_raw,
 
     int gps_a = 0;
     int gps_b = 0;
-    UTC2GPS(tm_value->tm_year + 1900,
-            tm_value->tm_mon + 1,
-            tm_value->tm_mday,
-            tm_value->tm_hour,
-            tm_value->tm_min,
-            tm_value->tm_sec,
-            gps_a,
-            gps_b);
+    UTC2GPS(tm_value->tm_year + 1900, // x0
+            tm_value->tm_mon + 1,    // x1
+            tm_value->tm_mday,       // x2
+            tm_value->tm_hour,       // x3
+            tm_value->tm_min,        // x4
+            tm_value->tm_sec,        // x5
+            gps_a,                   // [sp + 0x80], checked immediately
+            gps_b);                  // [sp + 0x84], later written to state
 
     // 2) Third input and time-derived range check.
     if (!check_time_and_extra_guess(gps_a, in_extra_ref)) {
@@ -187,7 +185,10 @@ int doEncrypt_annotated(long timestamp_raw,
 
     // 3) Quantize lon/lat-like inputs to scaled integer form, then derive
     //    double coordinates by dividing by 1e7.
-    double raw_lon_scaled = quantize_to_1e7_guess(in_lon_ref);
+    //
+    // Important: the scaled integer is produced with binary fixed-point
+    // conversion, not normal decimal rounding.
+    double raw_lon_scaled = quantize_scaled_integer_guess(in_lon_ref);
     double quantized_lon = raw_lon_scaled / kScale1e7;
 
     if (quantized_lon < kLonMinChinaGuess || quantized_lon > kLonMaxChinaGuess) {
@@ -195,7 +196,7 @@ int doEncrypt_annotated(long timestamp_raw,
         return 0;
     }
 
-    double raw_lat_scaled = quantize_to_1e7_guess(in_lat_ref);
+    double raw_lat_scaled = quantize_scaled_integer_guess(in_lat_ref);
     double quantized_lat = raw_lat_scaled / kScale1e7;
 
     if (quantized_lat < kLatMinChinaGuess || quantized_lat > kLatMaxChinaGuess) {
@@ -297,6 +298,8 @@ int doEncrypt_annotated(long timestamp_raw,
          (delta_lat * 180.0 * magic * sqrt_magic) / kEarthFormulaDenominator) *
         kScale1e7;
 
+    // The stores reuse the same output block as the first-call path:
+    //   store integer-coded double -> divide by 1e7 -> store final double.
     out_lon_ref = (double)(uint32_t)lon_scaled / kScale1e7;
     out_lat_ref = (double)(uint32_t)lat_scaled / kScale1e7;
     return 1;
