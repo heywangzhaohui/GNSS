@@ -1,0 +1,19 @@
+
+mapenv_02changsha.bin:     file format elf64-littleaarch64
+
+Contents of section .rodata:
+ 9d1d10 00008075 77077342 b4e55c8a abaa2a40  ...uw.sB..\...*@
+ 9d1d20 3a9d52a2 46df913f 3a6af93f 8f6a7b3f  :.R.F..?:j.?.j{?
+ 9d1d30 00000040 c1545841 666666de 4efb7241  ...@.TXAfff.N.rA
+ 9d1d40 0c022b87 16d9d63f 000000a5 b0b9b241  ..+....?.......A
+ 9d1d50 000000a5 880cbb41 00000040 3333eb3f  .......A...@33.?
+ 9d1d60 6dca15de e5ee5c40 3bc780ec f5765d40  m.....\@;....v]@
+ 9d1d70 124e0b5e f4414340 6ac18bbe 82344440  .N.^.AC@j....4D@
+ 9d1d80 2f686f6d 652f612f 6d617065 6e762f65  /home/a/mapenv/e
+ 9d1d90 6e637279 7074696f 6e2d6d61 702f7372  ncryption-map/sr
+ 9d1da0 632f696d 626c5f73 65747469 6e67732e  c/imbl_settings.
+ 9d1db0 63707000 00000000 675f7365 7474696e  cpp.....g_settin
+ 9d1dc0 675f696e 7374616e 63652069 73206e6f  g_instance is no
+ 9d1dd0 74206c6f 61646564 21200000 00000000  t loaded! ......
+ 9d1de0 6c6f6164 206c6f63 20706172 616d6574  load loc paramet
+ 9d1df0 65722066 696c6520 73756363 65656421  er file succeed!

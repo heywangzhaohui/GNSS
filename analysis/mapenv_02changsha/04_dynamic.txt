@@ -1,0 +1,36 @@
+
+Dynamic section at offset 0x701540 contains 33 entries:
+  Tag        Type                         Name/Value
+ 0x0000000000000001 (NEEDED)             Shared library: [libGAdasSDK.so]
+ 0x0000000000000001 (NEEDED)             Shared library: [libssl.so.1.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libcrypto.so.1.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libpthread.so.0]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [ld-linux-aarch64.so.1]
+ 0x000000000000001d (RUNPATH)            Library runpath: [/home/a/mapenv/encryption-map/3rd_party/j2/ehp_v3/libs:/home/a/mapenv/encryption-map/3rd_party/j2/grpc_1.8.6/lib]
+ 0x000000000000000c (INIT)               0x593370
+ 0x000000000000000d (FINI)               0x9ae05c
+ 0x0000000000000019 (INIT_ARRAY)         0xb02f70
+ 0x000000000000001b (INIT_ARRAYSZ)       1240 (bytes)
+ 0x000000000000001a (FINI_ARRAY)         0xb03448
+ 0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)
+ 0x000000006ffffef5 (GNU_HASH)           0x4002d0
+ 0x0000000000000005 (STRTAB)             0x48a5e8
+ 0x0000000000000006 (SYMTAB)             0x424a50
+ 0x000000000000000a (STRSZ)              1018021 (bytes)
+ 0x000000000000000b (SYMENT)             24 (bytes)
+ 0x0000000000000015 (DEBUG)              0x0
+ 0x0000000000000003 (PLTGOT)             0xb12fe8
+ 0x0000000000000002 (PLTRELSZ)           11760 (bytes)
+ 0x0000000000000014 (PLTREL)             RELA
+ 0x0000000000000017 (JMPREL)             0x590580
+ 0x0000000000000007 (RELA)               0x58b810
+ 0x0000000000000008 (RELASZ)             19824 (bytes)
+ 0x0000000000000009 (RELAENT)            24 (bytes)
+ 0x000000006ffffffe (VERNEED)            0x58b630
+ 0x000000006fffffff (VERNEEDNUM)         8
+ 0x000000006ffffff0 (VERSYM)             0x582e8e
+ 0x0000000000000000 (NULL)               0x0
