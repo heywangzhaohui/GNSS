@@ -1,0 +1,4 @@
+analysis/**/full_disassembly_text.asm
+analysis/**/full_symbols.txt
+analysis/**/full_strings.txt
+analysis/**/full_relocations.txt

@@ -1,0 +1,10 @@
+== file ==
+mapenv_02changsha.bin: ELF 64-bit LSB executable, ARM aarch64, version 1 (GNU/Linux), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, BuildID[sha1]=dfdb7450717402776949886c0d65e5dfdeb1cf3b, for GNU/Linux 3.7.0, with debug_info, not stripped
+
+== hashes ==
+6c81ce0411dd2df2f70b51de8218433d6cbc081c6c4a54c5f4e4a6c5250b42c1  mapenv_02changsha.bin
+ae25ec50a8adeb05cb44233f5bee576c6ab96c1d  mapenv_02changsha.bin
+901b0cededaa8fbb53270a90454f5847  mapenv_02changsha.bin
+
+== size ==
+12418490 mapenv_02changsha.bin
