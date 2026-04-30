@@ -59,6 +59,17 @@ aarch64-linux-gnu-objdump -d -C \
   "$sample" > "$out_dir/19_encrypt_disassembly.asm"
 
 aarch64-linux-gnu-objdump -d -C \
+  --start-address=0x711660 \
+  --stop-address=0x711b80 \
+  --no-show-raw-insn \
+  "$sample" > "$out_dir/23_doencrypt_disassembly.asm"
+
+aarch64-linux-gnu-objdump -s -j .rodata \
+  --start-address=0x9d1c40 \
+  --stop-address=0x9d1ce0 \
+  "$sample" > "$out_dir/24_doencrypt_rodata_window.txt"
+
+aarch64-linux-gnu-objdump -d -C \
   --start-address=0x710500 \
   --stop-address=0x710b88 \
   --no-show-raw-insn \
