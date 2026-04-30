@@ -222,6 +222,7 @@ main = 0x597078
 | `24_doencrypt_rodata_window.txt` | `doEncrypt` 错误日志/范围常量 rodata |
 | `02_encrypt_walkthrough.md` | 第二阶段 `doEncrypt` 跟读教程 |
 | `03_doencrypt_function.md` | 只聚焦 `doEncrypt` 的逐段注释和伪代码 |
+| `doencrypt_annotated_pseudocode.cpp` | `doEncrypt` 注释版伪代码整理 |
 | `reproduce_cloud_steps.sh` | 复现命令脚本 |
 
 完整反汇编可按需生成：

@@ -6,6 +6,7 @@
 doEncrypt(long, double const&, double const&, double const&, double&, double&)
 地址：0x711660
 完整反汇编：23_doencrypt_disassembly.asm
+注释版伪代码：doencrypt_annotated_pseudocode.cpp
 ```
 
 上一份 `02_encrypt_walkthrough.md` 是围绕加密链路讲思路；这一份只服务于你在本地反编译器里逐行看 `doEncrypt`。
