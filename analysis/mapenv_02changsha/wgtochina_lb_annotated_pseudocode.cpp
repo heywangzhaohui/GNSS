@@ -35,11 +35,11 @@ static const unsigned int WGTOCHINA_INPUT_ERROR = 0xffff95ffU; // signed: -27137
 // integer coordinates in degrees * 1e7.
 static const double kCoordScale = 10000000.0;
 
-// Coarse valid input range. These constants are loaded from .rodata.
-static const double kMinLng = 72.004;
-static const double kMaxLng = 137.8347;
-static const double kMinLat = 0.8293;
-static const double kMaxLat = 55.8271;
+// Valid input range loaded by wgtochina_lb from .rodata offsets 0x9d1d60..0x9d1d78.
+static const double kMinLng = 115.73278000000001;
+static const double kMaxLng = 117.85876;
+static const double kMinLat = 38.515270000000001;
+static const double kMaxLat = 40.410240000000002;
 
 // Decimal grid adjustment constants.
 static const double kGridScaleA = 100000.0;

@@ -19,10 +19,10 @@
 
 // Confirmed constants decoded from .rodata or ARM64 immediates.
 static const double kScale1e7 = 10000000.0;
-static const double kLonMinChinaGuess = 72.004;
-static const double kLonMaxChinaGuess = 137.8347;
-static const double kLatMinChinaGuess = 0.8293;
-static const double kLatMaxChinaGuess = 55.8271;
+static const double kLonMinRegionGuess = 115.73278000000001;
+static const double kLonMaxRegionGuess = 117.85876;
+static const double kLatMinRegionGuess = 38.515270000000001;
+static const double kLatMaxRegionGuess = 40.410240000000002;
 static const double kDegToRad = 0.017453292519943299; // pi / 180
 static const double kEarthEccentricitySq = 0.00669342;
 static const double kEarthSemiMajorAxis = 6378245.0;
@@ -191,7 +191,7 @@ int doEncrypt_annotated(long timestamp_raw,
     double raw_lon_scaled = quantize_scaled_integer_guess(in_lon_ref);
     double quantized_lon = raw_lon_scaled / kScale1e7;
 
-    if (quantized_lon < kLonMinChinaGuess || quantized_lon > kLonMaxChinaGuess) {
+    if (quantized_lon < kLonMinRegionGuess || quantized_lon > kLonMaxRegionGuess) {
         log_input_parameter_error_guess();
         return 0;
     }
@@ -199,7 +199,7 @@ int doEncrypt_annotated(long timestamp_raw,
     double raw_lat_scaled = quantize_scaled_integer_guess(in_lat_ref);
     double quantized_lat = raw_lat_scaled / kScale1e7;
 
-    if (quantized_lat < kLatMinChinaGuess || quantized_lat > kLatMaxChinaGuess) {
+    if (quantized_lat < kLatMinRegionGuess || quantized_lat > kLatMaxRegionGuess) {
         log_input_parameter_error_guess();
         return 0;
     }

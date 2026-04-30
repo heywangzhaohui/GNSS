@@ -159,20 +159,20 @@ d10 = quantized_lat
 常量来自 `22_encrypt_constants_decoded.txt`：
 
 ```text
-72.004
-137.8347
-0.8293
-55.8271
+115.73278
+117.85876
+38.51527
+40.41024
 ```
 
 对应：
 
 ```cpp
-if (quantized_lon < 72.004 || quantized_lon > 137.8347) return false;
-if (quantized_lat < 0.8293 || quantized_lat > 55.8271) return false;
+if (quantized_lon < 115.73278 || quantized_lon > 117.85876) return false;
+if (quantized_lat < 38.51527 || quantized_lat > 40.41024) return false;
 ```
 
-这是一层中国范围级别的粗过滤。
+这是实际加载的局部区域范围过滤，对应地址 `0x9d1d60..0x9d1d78`。
 
 ### 3.5 首次调用分支：`0x7117a0..0x7117f8`
 
@@ -340,14 +340,14 @@ bool doEncrypt(long timestamp_raw,
 
     double raw_lon_scaled = quantize_to_1e7(in_lon);
     double quantized_lon = raw_lon_scaled / 10000000.0;
-    if (quantized_lon < 72.004 || quantized_lon > 137.8347) {
+    if (quantized_lon < 115.73278 || quantized_lon > 117.85876) {
         log("wgtochina_lb input parameter error");
         return false;
     }
 
     double raw_lat_scaled = quantize_to_1e7(in_lat);
     double quantized_lat = raw_lat_scaled / 10000000.0;
-    if (quantized_lat < 0.8293 || quantized_lat > 55.8271) {
+    if (quantized_lat < 38.51527 || quantized_lat > 40.41024) {
         log("wgtochina_lb input parameter error");
         return false;
     }
