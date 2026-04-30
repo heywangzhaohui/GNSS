@@ -64,6 +64,12 @@ aarch64-linux-gnu-objdump -d -C \
   --no-show-raw-insn \
   "$sample" > "$out_dir/23_doencrypt_disassembly.asm"
 
+aarch64-linux-gnu-objdump -d -C \
+  --start-address=0x710e60 \
+  --stop-address=0x711220 \
+  --no-show-raw-insn \
+  "$sample" > "$out_dir/25_wgtochina_lb_disassembly.asm"
+
 aarch64-linux-gnu-objdump -s -j .rodata \
   --start-address=0x9d1c40 \
   --stop-address=0x9d1ce0 \

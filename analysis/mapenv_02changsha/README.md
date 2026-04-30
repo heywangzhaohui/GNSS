@@ -220,9 +220,12 @@ main = 0x597078
 | `22_encrypt_constants_decoded.txt` | 加密常量十进制解码 |
 | `23_doencrypt_disassembly.asm` | `doEncrypt` 完整函数反汇编 |
 | `24_doencrypt_rodata_window.txt` | `doEncrypt` 错误日志/范围常量 rodata |
+| `25_wgtochina_lb_disassembly.asm` | `wgtochina_lb` 完整函数反汇编 |
 | `02_encrypt_walkthrough.md` | 第二阶段 `doEncrypt` 跟读教程 |
 | `03_doencrypt_function.md` | 只聚焦 `doEncrypt` 的逐段注释和伪代码 |
 | `doencrypt_annotated_pseudocode.cpp` | `doEncrypt` 注释版伪代码整理 |
+| `04_wgtochina_lb_function.md` | `wgtochina_lb` 算法说明 |
+| `wgtochina_lb_annotated_pseudocode.cpp` | `wgtochina_lb` 注释版伪代码整理 |
 | `reproduce_cloud_steps.sh` | 复现命令脚本 |
 
 完整反汇编可按需生成：
