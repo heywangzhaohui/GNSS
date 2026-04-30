@@ -215,6 +215,10 @@ main = 0x597078
 | `14_main_disassembly.asm` | `main` 反汇编摘录 |
 | `18_rodata_main_strings_window.txt` | `main` 附近引用的 rodata 字符串 |
 | `19_encrypt_disassembly.asm` | 加密相关函数窗口 |
+| `20_encrypt_helpers_disassembly.asm` | 加密辅助函数窗口 |
+| `21_encrypt_constants_rodata.txt` | 加密常量 rodata 原始 dump |
+| `22_encrypt_constants_decoded.txt` | 加密常量十进制解码 |
+| `02_encrypt_walkthrough.md` | 第二阶段 `doEncrypt` 跟读教程 |
 | `reproduce_cloud_steps.sh` | 复现命令脚本 |
 
 完整反汇编可按需生成：
